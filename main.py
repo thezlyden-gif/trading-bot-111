@@ -22,14 +22,16 @@ monitored_symbols = [
 ]
 
 def fetch_price(symbol):
-    url = f"https://api.bybit.com/v5/market/tickers?category=spot"
+    url = "https://api.bybit.com/v5/market/tickers?category=spot"
     try:
-        response = requests.get(url, timeout=5)
+        headers = {"Accept": "application/json"}
+        response = requests.get(url, headers=headers, timeout=5)
         data = response.json()
-        tickers = data['result']['list']
-        for ticker in tickers:
-            if ticker["symbol"] == f"{symbol}USDT":
-                return float(ticker["lastPrice"])
+
+        if "result" in data and "list" in data["result"]:
+            for ticker in data["result"]["list"]:
+                if ticker["symbol"] == f"{symbol}USDT":
+                    return float(ticker["lastPrice"])
     except Exception as e:
         print(f"Ошибка получения цены {symbol}: {e}")
     return None
