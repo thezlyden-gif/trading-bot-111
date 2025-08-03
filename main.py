@@ -10,8 +10,8 @@ CHAT_ID = 7647937915
 API_URL = f"https://api.telegram.org/bot{TOKEN}"
 APP_URL = 'https://telegram-crypto-bot-imxi.onrender.com'
 WEBHOOK_PATH = f'/{TOKEN}'
-PRICE_UPDATE_INTERVAL = 60  # 1 минута
-SIGNAL_INTERVAL = 120       # 2 минуты
+PRICE_UPDATE_INTERVAL = 60
+SIGNAL_INTERVAL = 120
 
 app = Flask(__name__)
 prices = {}
@@ -21,7 +21,6 @@ monitored_symbols = [
     "INJ", "FET", "RNDR", "DYDX", "LDO", "SEI", "BLUR"
 ]
 
-# === Получение цен с Bybit ===
 def fetch_price(symbol):
     url = f"https://api.bybit.com/v5/market/tickers?category=spot"
     try:
@@ -43,7 +42,6 @@ def update_prices():
                 prices[symbol] = price
         time.sleep(PRICE_UPDATE_INTERVAL)
 
-# === Генерация сигнала ===
 def generate_signal():
     if not prices:
         return None
@@ -51,18 +49,12 @@ def generate_signal():
     price = prices.get(entry)
     if price:
         now = datetime.now().strftime("%d.%m.%Y %H:%M:%S")
-        return (f"📈 Сигнал на вход ({now})
-"
-                f"Монета: {entry}
-"
-                f"Тип: LONG
-"
-                f"Цена входа: {price}$
-"
-                f"Объём входа: 10% от депозита
-"
-                f"Стоп-лосс: {price * 0.98:.2f}$
-"
+        return (f"📈 Сигнал на вход ({now})\n"
+                f"Монета: {entry}\n"
+                f"Тип: LONG\n"
+                f"Цена входа: {price}$\n"
+                f"Объём входа: 10% от депозита\n"
+                f"Стоп-лосс: {price * 0.98:.2f}$\n"
                 f"Тейк-профит: {price * 1.05:.2f}$")
     return None
 
@@ -90,11 +82,9 @@ def auto_signal_loop():
             print(f"❌ Ошибка в автоанализе: {e}")
         time.sleep(SIGNAL_INTERVAL)
 
-# === Команды Telegram ===
 @app.route(WEBHOOK_PATH, methods=["POST"])
 def telegram_webhook():
     data = request.get_json()
-
     if "message" in data:
         msg = data["message"]
         chat_id = msg["chat"]["id"]
@@ -103,12 +93,10 @@ def telegram_webhook():
         if text == "/start":
             send_to_telegram("Привет! Бот готов к работе.")
         elif text == "/price":
-            out = "📊 Актуальные цены:
-"
+            out = "📊 Актуальные цены:\n"
             for sym in monitored_symbols:
                 price = prices.get(sym, "—")
-                out += f"{sym}: ${price}
-"
+                out += f"{sym}: ${price}\n"
             send_to_telegram(out)
         elif text == "/signal":
             signal = generate_signal()
@@ -117,26 +105,20 @@ def telegram_webhook():
             else:
                 send_to_telegram("Нет актуального сигнала.")
         elif text == "/help":
-            out = ("📘 Доступные команды:
-"
-                   "/price — текущие цены
-"
-                   "/signal — получить сигнал
-"
-                   "/help — команды
-")
+            out = ("📘 Доступные команды:\n"
+                   "/price — текущие цены\n"
+                   "/signal — получить сигнал\n"
+                   "/help — команды\n")
             send_to_telegram(out)
 
     return {"ok": True}
 
-# === Установка Webhook ===
 def set_webhook():
     url = f"{API_URL}/setWebhook"
     webhook_url = f"{APP_URL}{WEBHOOK_PATH}"
     res = requests.post(url, json={"url": webhook_url})
     print(f"Webhook установлен: {res.json()}")
 
-# === Запуск ===
 if __name__ == "__main__":
     Thread(target=update_prices).start()
     Thread(target=auto_signal_loop).start()
